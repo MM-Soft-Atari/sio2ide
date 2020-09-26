@@ -1,0 +1,104 @@
+#
+# Makefile for cc65 software
+#
+# This Makefile requires OPUS make
+#
+
+%include ..\..\..\..\config.mak
+
+CROOT   = $(CC65ROOT)
+ROOT    = $(PROOT)\VER.400\SOFT
+
+#
+# Cartridge or DOS version, DEBUG mode
+#
+VER     = XEGS32K      # DOS/XEGS32K/OSSM091
+DBG     = NDEBUG       #
+ATR     = FDisk
+
+#----------------------------------------------------------------------------
+#
+# Enter the target system here
+#
+SYS     = atari
+
+#
+# Source files
+#
+MAIN    = fdisk
+CSRCS   = screen menu listv siosrv qsort
+ASRCS   = utils
+
+#
+# Destination files
+#
+DEST    = fdisk
+DLIB    = $(DEST).lib
+
+#
+#
+CRT0    = $(VER).o
+CLIB    = $(CROOT)\lib\$(SYS).lib
+CC      = $(CROOT)\bin\cc65
+CL      = $(CROOT)\bin\cl65
+AS      = $(CROOT)\bin\ca65
+LD      = $(CROOT)\bin\ld65
+AR      = $(CROOT)\bin\ar65
+
+SRCS    = $(ASRCS) $(CSRCS)
+OBJF    = $(SRCS,>.o)
+
+$(DEST).bin:  $(OBJF) $(MAIN).o $(CRT0)
+        @echo Linking    : $(DEST).bin
+        %foreach OBJ $(OBJF)
+          @$(AR) a $(DLIB) $(OBJ)
+        %end
+        @$(LD) -vm -C $(VER).xcl -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).bin $(CRT0) $(MAIN).o $(DLIB) $(CLIB)
+#        @$(LD) -vm -t $(SYS) -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(CRT0) $(MAIN).o $(DLIB) $(CLIB)
+#        @$(LD) -vm -t $(SYS) -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(CRT0) $(OBJF) $(CLIB)
+#        @$(LD) -vm -C atari.xcl -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(OBJS) $(CRT0) $(OBJF) $(CLIB)
+        @echo Done (mode = $(SYS,UC))
+        @echo
+        %if $(VER,UC)==DOS
+          @move $(DEST).bin com\$(DEST).com
+          @..\..\..\..\UTILS\DIR2ATR\dir2atr.exe -m -b MyDos4533 $(ATR).atr com
+          @move $(ATR).atr bin\$(ATR).atr
+        %else
+          @move $(DEST).bin rom\$(DEST).rom
+        %endif
+        %echo
+        %echo ************************************
+        %echo * Done ...
+        %if $(VER,UC)==DOS
+          %echo * $(DEST).com  created (DOS mode)
+        %else
+          %echo * $(DEST).rom  created (Cartridge mode)
+        %endif
+        %echo ************************************
+        %echo * Debug   :  $(DBG)
+        %echo ************************************
+        %echo
+
+.c.o:
+        @echo Compiling  : $<
+        @$(CC) -v -Or -g -t $(SYS) -D$(DBG,UC) -D__$(VER,UC)__ -I$(CROOT)\include\ -I$(ROOT)\AVR\FAT_1632 $<
+        @$(AS) $*.s
+
+.s.o:
+        @echo Assembling : $<
+        @$(AS) $*.s
+
+all:
+        @make clean
+        @make
+
+clean:
+        %foreach FILE $(CSRCS)
+          @del $(FILE).s
+        %endfor
+        @del $(MAIN).s
+        @del *.map
+        @del *.o
+        @del *.lbl
+        @del *.lib
+        @del *.com

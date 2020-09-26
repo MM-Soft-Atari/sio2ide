@@ -1,0 +1,42 @@
+#################################################################
+# Copyright (C), 2001 MMSoft, All rights reserved
+#################################################################
+
+#################################################################
+#
+# SOURCE FILE:  Makefile
+#
+# PURPOSE:
+#
+# AUTHOR:       Marek Mikolajewski (MM)
+#
+# REVIEWED BY:
+#
+# HISTORY:      Ver   Date       Sign   Description
+#
+#               001   25-02-2002 MM     Created
+#
+#################################################################
+
+#
+AVR     = AT90S8515
+
+%include ..\rules.mak
+
+LIBS    =
+
+%if $(CMPLR)==IARAVR
+AFILES += cstartup
+CFILES += sio2ide sio ide fs
+%endif
+
+%if $(CMPLR)==GNUAVR
+AFILES +=
+CFILES += sio2ide sio ide fs
+%endif
+
+OUTF    = sio2ide
+
+%include ..\exemake.mak
+
+#-------------------------------------------------------------------------------

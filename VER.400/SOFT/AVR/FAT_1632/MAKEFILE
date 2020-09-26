@@ -1,0 +1,45 @@
+#-------------------------------------------------------------------------------
+#
+#       Marek Mikolajewski (c) 2002
+#
+#-------------------------------------------------------------------------------
+#
+AVR     = ATmega323     # ATmega163/323
+MSIO    = 1             # SIO on/off
+MUSB    = 1             # USB on/off
+USPI    = SPI           # SPI/NOSPI
+
+%include ..\rules.mak
+
+DEFS    += USB_$(USPI)
+#
+DEFS    += SIO=$(MSIO)
+DEFS    += USB=$(MUSB)
+
+LIBS    =
+
+%if $(CMPLR)==IARAVR
+AFILES += cstartup swapb
+CFILES += sio2ide timers ide hal4ide
+%if $(MSIO)==1
+CFILES += sio fs fatfs extmemf iso eeserv
+%endif
+%if $(MUSB)==1
+%if $(DBG)==DEBUG
+CFILES += udrvavr extmemf
+%endif
+CFILES += extio extstr
+CFILES += hal4usb usbdrv usb usbxfer msbot rbc utils
+%endif
+%endif
+
+%if $(CMPLR)==GNUAVR
+AFILES +=
+CFILES +=
+%endif
+
+OUTF    = sio2ide
+
+%include ..\exemake.mak
+
+#-------------------------------------------------------------------------------

@@ -1,0 +1,31 @@
+MEMORY {
+            ZP:       start = $82,   size = $7E,   type = rw;
+            HEADER:   start = $0000, size = $6;
+            RAM:      start = $1F00, size = $7100;
+            DLIST:    start = $9000, size = $20,   type = rw;
+            SCREEN:   start = $9020, size = $3C0,  type = rw;
+        }
+SEGMENTS {
+            EXEHDR:   load = HEADER, type = ro;
+            CODE:     load = RAM,    type = ro,    define = yes;
+            CODE0:    load = RAM,    type = ro;
+            CODE1:    load = RAM,    type = ro;
+            CODE2:    load = RAM,    type = ro;
+            RODATA:   load = RAM,    type = ro;
+            DATA:     load = RAM,    type = rw;
+            DLIST:    load = RAM,    run = DLIST,  type = rw, define = yes;
+            BSS:      load = RAM,    type = bss,   define = yes;
+            SCREEN:   load = SCREEN, type = bss,   define = yes;
+            ZEROPAGE: load = ZP,     type = zp;
+            AUTOSTRT: load = RAM,    type = ro;
+        }
+FEATURES {
+            CONDES: segment = RODATA,
+                    type = constructor,
+                    label = __CONSTRUCTOR_TABLE__,
+                    count = __CONSTRUCTOR_COUNT__;
+            CONDES: segment = RODATA,
+                    type = destructor,
+                    label = __DESTRUCTOR_TABLE__,
+                    count = __DESTRUCTOR_COUNT__;
+        }

@@ -1,0 +1,38 @@
+#-------------------------------------------------------------------------------
+#
+#       Marek Mikolajewski (c) 2001
+#
+#-------------------------------------------------------------------------------
+#
+AVR     = ATmega323
+
+IPTLST += FAT_1632\
+
+%include ..\..\rules.mak
+
+DBG     = DEBUG
+
+LIBS    =
+
+TSTSRC  = extmemf hal4ide ide iso #eeserv fatfs fs
+
+.BEFORE:
+        %foreach FILE $(TSTSRC)
+          @copy ..\$(FILE).c *.*
+        %endfor
+
+.AFTER:
+        %foreach FILE $(TSTSRC)
+          @del $(FILE).c
+        %endfor
+
+OUTF    = ide_tst
+
+%if $(CMPLR)==IARAVR
+AFILES += cstartup swapb
+CFILES += $(TSTSRC) $(OUTF) udrvavr extio extstr
+%endif
+
+%include ..\..\exemake.mak
+
+#-------------------------------------------------------------------------------

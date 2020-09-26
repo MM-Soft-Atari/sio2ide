@@ -1,0 +1,79 @@
+
+-!                      - lnk1s.xcl -
+
+    XLINK command file for the ICCA90 C-compiler using the -v1, -ms options.
+    Segments are defined for a generic AT90S with a maximum of
+     64 Kbytes data address space and   8 Kbytes program address space.
+
+    Usage: xlink your_file(s) -f lnk1s
+
+    File version:   $Revision: 1.13 $
+
+    The following segments are used by the compiler:
+
+    Program address space read only segments (internal Flash)
+    =========================================================
+    segment     address range  max size (dec)  used with compiler options
+    -------     -------------  --------------  --------------------------
+    INTVEC          0 -    1B   28 bytes       -e ("interrupt" keyword)
+    RCODE          1C -  1FFF    8 Kbytes
+    SWITCH         1C -  1FFF    8 Kbytes
+    FLASH          1C -  1FFF    8 Kbytes      -e ("flash" keyword)
+    CDATA0         1C -  1FFF    8 Kbytes      -e ("tiny" keyword)
+    CDATA1         1C -  1FFF    8 Kbytes      (if -y then const objects)
+    CCSTR          1C -  1FFF    8 Kbytes      -y
+    CODE           1C -  1FFF    8 Kbytes
+
+    Data address space read only segments (external PROM)
+    =====================================================
+    segment     address range  max size (dec)  used with compiler options
+    -------     -------------  --------------  --------------------------
+    CONST           ? -  FFFF   64 Kbytes      Not -y
+    CSTR            ? -  FFFF   64 Kbytes      Not -y
+
+    Data address space read/write segments
+    ==============================================================
+    segment     address range  max size (dec)  used with compiler options
+    -------     -------------  --------------  --------------------------
+    UDATA0         60 -    FF  224 bytes       -e ("tiny" keyword)
+    IDATA0         60 -    FF  224 bytes       -e ("tiny" keyword)
+    RSTACK         60 -  FFFF   64 Kbytes
+    CSTACK         60 -  FFFF   64 Kbytes
+    UDATA1         60 -  FFFF   64 Kbytes
+    IDATA1         60 -  FFFF   64 Kbytes      (if -y then const objects)
+    ECSTR          60 -  FFFF   64 Kbytes      -y
+
+    Data address space read/write non-volatile segments (external EEPROM)
+    =====================================================================
+    segment     address range  max size (dec)  used with compiler options
+    -------     -------------  --------------  --------------------------
+    NO_INIT        60 -  FFFF   64 Kbytes      -e ("no_init" keyword)
+
+   "tiny" pointers can only access objects in the range 0-FF.
+    Option -y stores strings in ECSTR (init value in CCSTR) instead of CSTR,
+    and stores constants in IDATA1 (init value in CDATA1).
+-!
+
+-!  First define CPU -!
+
+-ca90
+
+-! Program address space (in internal Flash memory) -!
+-Z(CODE)INTVEC=0-1B
+-Z(CODE)RCODE,FLASH,CONST,CCSTR,CSTR,CDATA0,CDATA1,SWITCH,CODE=100-1FFF
+
+-! Data address space (tiny data in internal SRAM) -!
+-! The registers are in 0-1F and memmory mapped I/O in 20-5F -!
+-Z(DATA)UDATA0,IDATA0,CSTACK+40,RSTACK+30=60-FF
+
+-! Data stack space (in internal SRAM) -!
+-! -Z(DATA)CSTACK=100-25F -!
+
+-! Return address stack (in external SRAM) -!
+-! -e?RSTACK_IN_EXTERNAL_RAM=?C_STARTUP -!
+-Z(DATA)ECSTR,IDATA1,UDATA1=100-25F
+
+-! Data address space (I/O) -!
+-! -Z(DATA)NO_INIT=8000-FFFF -!
+
+

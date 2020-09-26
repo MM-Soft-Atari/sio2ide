@@ -1,0 +1,27 @@
+#-------------------------------------------------------------------------------
+#
+#       Marek Mikolajewski (c) 2001
+#
+#-------------------------------------------------------------------------------
+#
+AVR     = ATmega161     # ATmega161/3
+
+%include ..\rules.mak
+
+LIBS    =
+
+%if $(CMPLR)==IARAVR
+AFILES += cstartup
+CFILES += sio2ide sio ide fs fatfs extmemf iso eeserv
+%endif
+
+%if $(CMPLR)==GNUAVR
+AFILES +=
+CFILES += sio2ide sio ide fs fatfs extmemf iso eeserv
+%endif
+
+OUTF    = sio2ide
+
+%include ..\exemake.mak
+
+#-------------------------------------------------------------------------------

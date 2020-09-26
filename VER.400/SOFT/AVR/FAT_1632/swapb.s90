@@ -1,0 +1,53 @@
+;;****************************************************************
+;; Copyright (C), 2002 Interlogix, All rights reserved
+;;****************************************************************
+
+;;****************************************************************
+;;
+;; SOURCE FILE:
+;;
+;; MODULE NAME:
+;;
+;; PURPOSE:
+;;
+;; AUTHOR:      Marek Mikolajewski (MM)
+;;
+; REVIEWED BY:
+;;
+;; HISTORY:     Ver   Date       Sign   Description
+;;
+;;              001   19-08-2002 MM     Created
+;;
+;;****************************************************************
+
+        PUBLIC          Swap_Byte
+
+        RSEG CODE
+
+;;----------------------------------------------------------------
+;; Function :   Swap_Byte
+;; Notes    :   R16 - input/output Byte
+;; History  :
+;;----------------------------------------------------------------
+
+Swap_Byte:
+        ROL     R16     ; 1 bit
+        ROR     R17
+        ROL     R16     ; 1 bit
+        ROR     R17
+        ROL     R16     ; 1 bit
+        ROR     R17
+        ROL     R16     ; 1 bit
+        ROR     R17
+        ROL     R16     ; 1 bit
+        ROR     R17
+        ROL     R16     ; 1 bit
+        ROR     R17
+        ROL     R16     ; 1 bit
+        ROR     R17
+        ROL     R16     ; 1 bit
+        ROR     R17
+        MOV     R16,R17
+        RET
+
+        END

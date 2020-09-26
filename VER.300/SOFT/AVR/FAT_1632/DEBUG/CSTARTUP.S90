@@ -1,0 +1,362 @@
+#include        "macros.m90"
+
+
+;----------------------------------------------------------------------------
+;
+;                   CSTARTUP.S90
+;
+;       This module contains the A90 C startup
+;       routine and must usually be tailored to suit
+;       customer's hardware.
+;
+;   File version:   $Revision: 1.20 $
+;
+;
+;----------------------------------------------------------------------------
+
+        NAME C_STARTUP
+;--------------------------------------------------------------
+; Set up the INTVEC segment with a reset vector
+;--------------------------------------------------------------
+        EXTERN  ?C_STARTUP
+        COMMON  INTVEC(1)       ; Align at an even address
+
+        ORG     $0
+        XJMP    ?C_STARTUP
+
+        ENDMOD
+
+;----------------------------------------------------------------------------
+; If the return address stack is located in external SRAM,
+; Make sure that this line is included in the link file.
+; -e_RSTACK_IN_EXTERNAL_SRAM=_C_STARTUP
+;----------------------------------------------------------------------------
+        NAME    C_STARTUP_II
+
+        EXTERN  main, ?C_EXIT
+        EXTERN  __low_level_init
+#ifdef A90_HAS_ELPM
+        EXTERN  ?MOVE_FARFLASH_DEST16_L07
+        EXTERN  ?MOVE_FARFLASH_HUGE_L07
+#else
+        EXTERN  ?MOVE_FLASH_L07
+#endif
+#if A90_POINTER_REG_SIZE == 3
+        EXTERN  ?CLEAR_DATA_HUGE_L07
+#endif
+        EXTERN  ?CLEAR_DATA_L07
+
+        PUBLIC  ?C_STARTUP
+        PUBLIC  ?RSTACK_IN_EXTERNAL_RAM
+
+;----------------------------------------------------------------------
+;
+; Forward declarations of segments used in initialization
+;
+;----------------------------------------------------------------------
+#if A90_POINTER_REG_SIZE != 3
+
+        RSEG    UDATA0(0)
+        RSEG    IDATA0(0)
+        RSEG    CDATA0(0)
+
+#endif
+
+        RSEG    CCSTR(0)
+        RSEG    ECSTR(0)
+        RSEG    SWITCH(0)
+
+        RSEG    CSTACK(0)
+        RSEG    RSTACK(0)
+
+        RSEG    UDATA1(0)
+        RSEG    IDATA1(0)
+        RSEG    CDATA1(0)
+
+#if ((A90_PROC_OPTION == 4) || (A90_PROC_OPTION > 5))
+        RSEG    UDATA2(0)
+        RSEG    IDATA2(0)
+        RSEG    CDATA2(0)
+        RSEG    UDATA3(0)
+        RSEG    IDATA3(0)
+        RSEG    CDATA3(0)
+#endif
+
+        RSEG    CODE(1)         ; Align at an even address
+        RSEG    RCODE(1)        ; Align at an even address
+
+;----------------------------------------------------------------------
+;
+; Perform C initialization
+;
+;----------------------------------------------------------------------
+
+        RSEG    RCODE
+
+;----------------------------------------------------------------------------
+; If the return address stack is located in external SRAM,
+; Make sure that this line is included in the link file.
+; -e_RSTACK_IN_EXTERNAL_SRAM=_C_STARTUP
+;----------------------------------------------------------------------------
+?RSTACK_IN_EXTERNAL_RAM:
+;Enable the external SRAM with a wait state
+        LDI     R16,0xC0
+        OUT     0x35,R16
+?C_STARTUP:
+        ;; Data stack
+        LDI     Y0,LOW(SFE(CSTACK))
+#if A90_POINTER_REG_SIZE > 1
+
+#if (A90_POINTER_REG_SIZE == 3) && (MEMORY_MODEL == LARGE_MEMORY_MODEL)
+        LDI     Y1,HWRD(SFE(CSTACK))
+        OUT     RAMPY,Y1
+#endif
+
+        LDI     Y1,HIGH(SFE(CSTACK))
+
+#endif
+
+        ;; Return address stack (hardware stack)
+        LDI     R16,LOW(SFE(RSTACK))
+        SUBI    R16,0x03
+        OUT     0x3D,R16
+#if A90_POINTER_REG_SIZE > 1
+        LDI     R16,HIGH(SFE(RSTACK))
+        SBCI    R16,0x00
+        OUT     0x3E,R16
+#endif
+
+;----------------------------------------------------------------------
+; Call __low_level_init to perform initialization before initializing
+; segments and calling main. If the function returns 0 no segment
+; initialization should take place.
+;
+; Link with your own version of __low_level_init to override the
+; default action: to do nothing but return 1.
+;----------------------------------------------------------------------
+
+        XCALL   __low_level_init
+
+        TST     P0
+        BRNE    skip_skip_init
+        RCALL   skip_init
+
+skip_skip_init:
+;----------------------------------------------------------------------
+; Segment initialization:
+; UDATA0, UDATA1, UDATA2, UDATA3 "uninitialized data" are filled with zero
+; CDATA0 is copied to IDATA0     "initialized shortad data"
+; CDATA1 is copied to IDATA1     "initialized near data"
+; CDATA2 is copied to IDATA2     "initialized far data"
+; CDATA3 is copied to IDATA3     "initialized huge data"
+; CCSTR  is copied to ECSTR      "editable string literals"
+;
+;----------------------------------------------------------------------
+
+#if A90_POINTER_REG_SIZE != 3
+
+        ;       Fill UDATA0 with zero
+        LDI     Z0,LOW(SFB(UDATA0))             ; Destination, low
+        LDI     Z1,HIGH(SFB(UDATA0))            ; Destination, high
+        LDI     P0,LOW(SIZEOF(UDATA0))          ; Nr bytes, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     P1,HIGH(SIZEOF(UDATA0))         ; Nr bytes, high
+#endif
+        XCALL   ?CLEAR_DATA_L07
+
+        ;       Copy CDATA0 -> IDATA0
+        LDI     Z0,LOW(SFB(CDATA0))             ; Source, low
+        LDI     Z1,HIGH(SFB(CDATA0))            ; Source, high
+#ifdef A90_HAS_ELPM
+        LDI     Z2,HWRD(SFB(CDATA0))            ; Source, highest
+#endif
+        LDI     P0,LOW(SFB(IDATA0))             ; Destination, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     P1,HIGH(SFB(IDATA0))            ; Destination, high
+#endif
+        LDI     Q0,LOW(SIZEOF(CDATA0))          ; Nr bytes, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     Q1,HIGH(SIZEOF(CDATA0))         ; Nr bytes, high
+#endif
+#ifdef A90_HAS_ELPM
+        XCALL   ?MOVE_FARFLASH_DEST16_L07
+#else
+        XCALL   ?MOVE_FLASH_L07
+#endif
+#endif
+
+        ;       Fill UDATA1 with zero
+        LDI     Z0,LOW(SFB(UDATA1))             ; Destination, low
+        LDI     Z1,HIGH(SFB(UDATA1))            ; Destination, high
+        LDI     P0,LOW(SIZEOF(UDATA1))          ; Nr bytes, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     P1,HIGH(SIZEOF(UDATA1))         ; Nr bytes, high
+#endif
+        XCALL   ?CLEAR_DATA_L07
+
+        ;       Copy CDATA1 -> IDATA1
+        LDI     Z0,LOW(SFB(CDATA1))             ; Source, low
+        LDI     Z1,HIGH(SFB(CDATA1))            ; Source, high
+#ifdef A90_HAS_ELPM
+        LDI     Z2,HWRD(SFB(CDATA1))            ; Source, highest
+#endif
+        LDI     P0,LOW(SFB(IDATA1))             ; Destination, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     P1,HIGH(SFB(IDATA1))            ; Destination, high
+#endif
+        LDI     Q0,LOW(SIZEOF(CDATA1))          ; Nr bytes, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     Q1,HIGH(SIZEOF(CDATA1))         ; Nr bytes, high
+#endif
+#ifdef A90_HAS_ELPM
+        XCALL   ?MOVE_FARFLASH_DEST16_L07
+#else
+        XCALL   ?MOVE_FLASH_L07
+#endif
+
+#if A90_POINTER_REG_SIZE > 2
+        ;       Fill UDATA2 with zero
+        LDI     Z0,LOW(SFB(UDATA2))             ; Destination, low
+        LDI     Z1,HIGH(SFB(UDATA2))            ; Destination, high
+        LDI     Z2,HWRD(SFB(UDATA2))            ; Destination, highest
+
+        LDI     P0,LOW(SIZEOF(UDATA2))          ; Nr bytes, low
+        LDI     P1,HIGH(SIZEOF(UDATA2))         ; Nr bytes, high
+        LDI     P2,HWRD(SIZEOF(UDATA2))         ; Nr bytes,
+        XCALL   ?CLEAR_DATA_HUGE_L07
+
+        ;       Copy CDATA2 -> IDATA2
+        LDI     Z0,LOW(SFB(CDATA2))             ; Source, low
+        LDI     Z1,HIGH(SFB(CDATA2))            ; Source, high
+        LDI     Z2,HWRD(SFB(CDATA2))            ; Source, highest
+
+        LDI     P0,LOW(SFB(IDATA2))             ; Destination, low
+        LDI     P1,HIGH(SFB(IDATA2))            ; Destination, high
+        LDI     P2,HWRD(SFB(IDATA2))            ; Destination,
+
+        LDI     Q0,LOW(SIZEOF(CDATA2))          ; Nr bytes, low
+        LDI     Q1,HIGH(SIZEOF(CDATA2))         ; Nr bytes, high
+        LDI     Q2,HWRD(SIZEOF(CDATA2))         ; Nr bytes,
+
+        XCALL   ?MOVE_FARFLASH_HUGE_L07
+
+        ;       Fill UDATA3 with zero
+        LDI     Z0,LOW(SFB(UDATA3))             ; Destination, low
+        LDI     Z1,HIGH(SFB(UDATA3))            ; Destination, high
+        LDI     Z2,HWRD(SFB(UDATA3))            ; Destination, highest
+        LDI     P0,LOW(SIZEOF(UDATA3))          ; Nr bytes, low
+        LDI     P1,HIGH(SIZEOF(UDATA3))         ; Nr bytes, high
+        LDI     P2,HWRD(SIZEOF(UDATA3))         ; Nr bytes,
+        XCALL   ?CLEAR_DATA_HUGE_L07
+
+        ;       Copy CDATA3 -> IDATA3
+        LDI     Z0,LOW(SFB(CDATA3))             ; Source, low
+        LDI     Z1,HIGH(SFB(CDATA3))            ; Source, high
+        LDI     Z2,HWRD(SFB(CDATA3))            ; Source, highest
+
+        LDI     P0,LOW(SFB(IDATA3))             ; Destination, low
+        LDI     P1,HIGH(SFB(IDATA3))            ; Destination, high
+        LDI     P2,HWRD(SFB(IDATA3))            ; Destination,
+
+        LDI     Q0,LOW(SIZEOF(CDATA3))          ; Nr bytes, low
+        LDI     Q1,HIGH(SIZEOF(CDATA3))         ; Nr bytes, high
+        LDI     Q2,HWRD(SIZEOF(CDATA3))         ; Nr bytes,
+
+        XCALL   ?MOVE_FARFLASH_HUGE_L07
+#endif
+
+        ;       Copy CCSTR -> ECSTR
+        LDI     Z0,LOW(SFB(CCSTR))              ; Source, low
+        LDI     Z1,HIGH(SFB(CCSTR))             ; Source, high
+#ifdef A90_HAS_ELPM
+        LDI     Z2,HWRD(SFB(CCSTR))             ; Source, highest
+#endif
+        LDI     P0,LOW(SFB(ECSTR))              ; Destination, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     P1,HIGH(SFB(ECSTR))             ; Destination, high
+#if A90_POINTER_REG_SIZE > 2
+        LDI     P2,HWRD(SFB(ECSTR))             ; Destination,
+#endif
+#endif
+        LDI     Q0,LOW(SIZEOF(CCSTR))           ; Nr bytes, low
+#if A90_POINTER_REG_SIZE > 1
+        LDI     Q1,HIGH(SIZEOF(CCSTR))          ; Nr bytes, high
+#if A90_POINTER_REG_SIZE > 2
+        LDI     Q2,HWRD(SIZEOF(CCSTR))          ; Nr bytes,
+#endif
+#endif
+
+#ifdef A90_HAS_ELPM
+#if A90_POINTER_REG_SIZE > 2
+        XCALL   ?MOVE_FARFLASH_HUGE_L07
+#else
+        XCALL   ?MOVE_FARFLASH_DEST16_L07
+#endif
+#else
+        XCALL   ?MOVE_FLASH_L07
+#endif
+
+
+skip_init:
+;        XCALL   main
+        XJMP    main
+;        XJMP    ?C_EXIT
+
+
+
+        ENDMOD
+
+
+
+
+;---------------------------------------------------------------
+; Function/module: exit (int code)
+;
+; When C-SPY is used this code will automatically be replaced
+; by a 'debug' version of exit().
+;---------------------------------------------------------------
+;        MODULE  exit
+
+;        PUBLIC  exit
+;        PUBLIC  ?C_EXIT
+
+;        RSEG    CODE
+
+;exit:
+;?C_EXIT:
+;--------------------------------------------------------------
+; The next line could be replaced by user defined code.
+;--------------------------------------------------------------
+;        RJMP    $
+
+;        ENDMOD
+
+
+;----------------------------------------------------------------------
+;
+; The only action of this default version of __low_level_init is to
+; return 1. By doing so it signals that normal initialization of data
+; segments should be done.
+;
+; A customized version of __low_level_init may be created in order to
+; perform initialization before initializing segments and calling main
+; and/or to skip initialization of data segments under certain
+; circumstances.
+; For further details see sample file lowinit.c
+;
+;----------------------------------------------------------------------
+
+
+        MODULE  lowinit
+
+        PUBLIC  __low_level_init
+        RSEG    CODE
+
+__low_level_init:
+        LDI     P0,1            ; By returning 1 this function
+                ; indicates that the normal
+                ; initialization should take place
+        RET
+
+        END
+

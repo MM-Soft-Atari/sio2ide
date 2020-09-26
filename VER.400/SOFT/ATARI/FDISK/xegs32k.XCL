@@ -1,0 +1,55 @@
+#
+#     XEGS 32kB Cartridge:
+#          This bank-switched cartridge occupies 16 KB of address
+#          space between $8000 and $BFFF. The cartridge memory
+#          is divided into 4 banks, 8 KB each. Bank D (the last one)
+#          is always mapped to $A000-BFFF. Two lowest bits of a byte
+#          written to $D500-$D5FF select the bank mapped to $8000-$BFFF.
+#     DB 32kB Cartridge:
+#          A 32 KB bank-switched cartridge. There are 4 banks.
+#          Bank D is mapped to $A000-$BFFF. Bank in $8000-$9FFF
+#          is selected by an access to $D500-$D5FF. Two lowest
+#          bits of address select bank A, B, C or D.
+#
+
+MEMORY {
+            ZP:       start = $82,   size = $7E,   type = rw;
+# RAM 24kB
+            DLIST:    start = $2000, size = $20,   type = rw;
+            SCREEN:   start = $2020, size = $3C0,  type = rw;
+            STACK:    start = $2400, size = $800,  type = rw, define = yes;
+            RAM:      start = $2C00, size = $1400, type = rw;
+            RAM1:     start = $4000, size = $2000, type = ro;
+            RAM0:     start = $6000, size = $2000, type = ro;
+# ROM BANKS
+            CODE0:    start = $8000, size = $2000, type = ro, fill = yes;
+            CODE1:    start = $8000, size = $2000, type = ro, fill = yes;
+            CODE2:    start = $8000, size = $2000, type = ro, fill = yes;
+            CODE:     start = $A000, size = $1FFA, type = ro, fill = yes;
+            HEADER:   start = $BFFA, size = $6,    type = ro;
+        }
+SEGMENTS {
+            ZEROPAGE: load = ZP,     type = zp;
+# DATA
+            DLIST:    load = CODE0,  run  = DLIST, type = rw, define = yes;
+            SCREEN:   load = SCREEN, type = bss,   define = yes;
+            BSS:      load = RAM,    type = bss,   define = yes;
+            DATA:     load = CODE0,  run  = RAM,   type = rw, define = yes;
+# CODE
+            CODE0:    load = CODE0,  run  = RAM0,  type = ro, define = yes;
+            CODE1:    load = CODE1,  run  = RAM1,  type = ro, define = yes;
+            CODE2:    load = CODE2,  type = ro,    define = yes;
+            CODE:     load = CODE,   type = ro,    define = yes;
+            RODATA:   load = CODE,   type = ro;
+            CARTHDR:  load = HEADER, type = ro;
+        }
+FEATURES {
+            CONDES: segment = RODATA,
+                    type = constructor,
+                    label = __CONSTRUCTOR_TABLE__,
+                    count = __CONSTRUCTOR_COUNT__;
+            CONDES: segment = RODATA,
+                    type = destructor,
+                    label = __DESTRUCTOR_TABLE__,
+                    count = __DESTRUCTOR_COUNT__;
+        }

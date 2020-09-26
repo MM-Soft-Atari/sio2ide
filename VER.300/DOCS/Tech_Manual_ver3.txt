@@ -1,0 +1,342 @@
+
+
+
+
+
+
+
+
+               SIO2IDE Version 3.3 Technical Specification
+                               Revision 1
+                        for Atari Home Computers
+
+
+
+              Copyright (C) 2003 by MMSoft and the author:
+
+                                                        Marek Mikolajewski
+                                                        Gdansk Poland
+
+
+
+
+
+
+I. SIO2IDE HARDWARE
+
+    The interface hardware is based on the Atmel ATmega161-8PC micro (1kB RAM, 16kB FLASH).
+  The following control and configuration elements are available on
+  the SIO2IDE PCB:
+
+    Interface state monitor LEDs:
+       PWR_LED    - indicates the interface power supply status
+       SIO_LED    - indicates that the SIO command is received
+       BSY_LED    - indicates that the Hard Disk is busy or error occur
+       IDE_LED    - indicates the IDE bus activity (HDD output)
+
+    Configuration jumpers:
+       HD1_ZW     - On/Off disk D1: (useful e.g. during configuration)
+       INIT_ZW    - Disk swap D1: <-> D2:
+       MS_ZW      - Master/Slave mode selection
+
+    Connectors:
+       IDE_IO     - standard 40pin IDE connector for HD (full 16bit interface)
+                    44 Pin 2.5" converter available from: http://cablesnmor.com/hard-drive-converter.html
+       ISP_IO     - Atmel micro In System Programming connector (for SW upgrade)
+                      pin 1    - GND
+                      pin 2    - GND
+                      pin 3    - ATmega161 Reset
+                      pin 4    - ATmega161 SS
+                      pin 5    - ATmega161 MOSI
+                      pin 6    - ATmega161 MISO
+                      pin 7    - ATmega161 SCK
+                      pin 8    - Not Connected
+       SIO_IO     - Atari SIO bus plus extensions
+                      pin 1    - Data_In (SIO pin 5)
+                      pin 2    - Data_Out (SIO pin 3)
+                      pin 3    - Command (SIO pin 7)
+                      pin 4    - Reset_Out
+                      pin 5    - GND (SIO pin 4)
+                      pin 6    - GND (SIO pin 4)
+                      pin 7    - +5V (SIO pin 10)
+                      pin 8    - Not Connected
+
+  The Reset_Out (SIO_IO pin 4) is active (low state) when the SIO2IDE performs
+  the start-up initialisation sequence and the disk D1: is On (jumper HD1_ZW).
+
+
+II. DISK STRUCTURE
+
+    The SIO2IDE interface uses disks formatted under DOS or WIN9X operating
+  system. The following file systems (partition's types) are supported:
+
+      Partition Type      ID       Description
+   ----------------------------------------------------------
+      Small DOS           $04      FAT16 <32MB
+      Big DOS             $06      FAT16 >32MB (DOS)
+      FAT16               $0E      FAT16 >32MB (Windows)
+      FAT32               $0B      FAT32
+      FAT32               $0C      FAT32 with LBA support
+      ISO9660             $7F      CD-ROM filesystem
+
+    ATARI disk images supported by the interface must be stored in well known
+  ATR file format. There are the following limitations for the *.ATR files:
+
+    - all ATR files must contain correct 16B header
+    - all ATR files must be defragmented (use defrag.exe if needed)
+    - directory with ATR files must contain configuration file (sio2ide.cfg)
+
+  All ATR files that don't meet above criteria will not be visible by the
+  SIO2IDE interface.
+
+    The user can store ATR files in any disk location but the interface after
+  power up or reset always starts from the disk root directory (c:\sio2ide.cfg).
+  To change active configuration (directory) use fdisk.com software.
+
+  For example your HDD can contain the following files:
+
+    C:\
+      |- sio2ide.cfg
+      |- mdos453.atr
+      |- soft001.atr
+      |- ...
+      |-------------\DOS\
+      |                    |- defrag.exe
+      |                    |- speedisk.exe
+      |                    |- ...
+      |-------------\UTILS\
+      |                    |- chkfs.exe
+      |                    |- makeatr.exe
+      |                    |- ...
+      |-------------\SOFT\
+                           |- games003.atr
+                           |-----------------\GAMES\
+                           |                        |- sio2ide.cfg
+                           |                        |- games001.atr
+                           |                        |- games002.atr
+                           |-----------------\UTIL\
+                                                    |- sio2ide.cfg
+                                                    |- util001.atr
+                                                    |- util002.atr
+
+  In the above configuration the user can select and set as active one of the
+  following directories (sio2ide.cfg files):
+
+      C:\sio2ide.cfg
+      C:\SOFT\GAMES\sio2ide.cfg
+      C:\SOFT\UTIL\sio2ide.cfg
+
+  Note that file C:\SOFT\games003.atr will not be visible by the SIO2IDE.
+
+  Each configuration file (sio2ide.cfg) is a text file that includes current
+  ATARI disk assignment. Lines in this file have the following format:
+
+  D<no>=<ATR file>
+
+  where:
+       <no>        - ATARI disk number (1-5)
+       <ATR file>  - ATR file name without extension (capital letters)
+
+  Note that:
+
+     - each entry must start from the first column
+     - order is not important
+     - unresolved lines are ignored
+     - file size is limited to 512B
+
+  For example c:\sio2ide.cfg file can contain the following data:
+
+>>> cut here -------------------------------------------------------------------
+
+//             SIO2IDE v 3.1 configuration file (disks map)
+//
+// Syntax:   D<nr>=<name>
+//           nr   - ATARI disk number (1-5)
+//           name - ATR file name (without extension)
+//
+// Warning:  Size of this file is limited to 512B
+//
+D1=MDOS453
+D5=SOFT001
+D2=IMAGE002
+// End
+
+>>> cut here -------------------------------------------------------------------
+
+  After power up or reset the following disk will be available for ATARI
+  (refer to the above disk structure):
+
+  D1: = MDOS453.ATR
+  D2:   not available because c:\image002.atr does not exist
+  D3:   not assigned
+  D4:   not assigned
+  D5: = SOFT001.ATR
+
+  Note that Long File Names (LFN) are not supported by SIO2IDE. For FAT disks
+  LFN files will be visible like under DOS. For ISO9660 disks LFN files will
+  not be visible by SIO2IDE.
+
+
+III. SIO2IDE INTERFACE (via Atari SIO)
+
+     The physical disk drives and other peripherals are external to the ATARI
+  home computers and are normally attached to the "serial interface connector"
+  on the right side or back of the computer. The software in the operating
+  system (OS ROMs) to access the devices attached to either connector call
+  the "serial I/O driver" or SIO for short. The SIO2IDE interface is capable
+  of handling two groups of SIO commands:
+
+     - Disk Drive specific commands required by the Atari OS and DOS
+     - SIO2IDE specific commands that are used by the interface configuration
+       software (fdisk.com)
+
+  III.1. Disk Drive commands
+
+     The following minimum set of disk drive commands are supported by the
+  SIO2IDE interface:
+
+   Device  Unit   Command  Direction   Byte Ct.   Aux Bytes    Function
+   $31    Drive#    $21    From Drive   128/256       0         FORMAT DISK
+   $31    Drive#    $50    To Drive     128/256    1 to MaxS    WRITE(no vfy)
+   $31    Drive#    $52    From Drive   128/256    1 to MaxS    READ
+   $31    Drive#    $53    From Drive      4          0         READ STATUS
+   $31    Drive#    $57    To Drive     128/256    1 to MaxS    WRITE(verify)
+   $31    Drive#    $4E    From Drive      12      1 to MaxS    READ CFG.
+   $31    Drive#    $4F    To Drive        12      1 to MaxS    WRITE CFG.
+
+  General notes:
+
+     The byte count is always 128 for the first three sectors (1, 2, and 3)
+     of a drive. All other sectors on a disk drive are 128/256 bytes long.
+
+     Drive# identifies the drive unit (0-6). Max 7 disk drives can be
+     emulated by the SIO2IDE interface.
+
+     MaxS is a maximum sector number that is available on the emulated disk
+     drive unit (1-65535).
+
+  FORMAT DISK ($21)
+
+     This command is accepted by the interface but the disk drive is not physically
+  formatted (this operation is not needed). The SIO2IDE always returns a fixed
+  data block 128/256 bytes (filed with 0xFF). This indicates that operation was
+  successfully finished.
+
+  READ STATUS ($53)
+
+     The individual (fixed) bytes transferred by this command are defined as
+  follows:
+     byte 0:    Indicates the sector size (fixed value 0x30 or 0x10).
+                  bit 4: 1 - Motor is ON
+                  bit 5: 1 - 256 bytes
+     byte 1:    Inverted Error Status (fixed value 0xFF, no errors)
+     byte 2:    Format Time Out (fixed value 0xE0)
+     byte 3:    Fixed value 0x00
+
+  READ/WRITE CFG. ($4E,$4F)
+
+     The individual (fixed) bytes transferred by these commands are defined as
+  follows:
+     byte 0:    Tracks per side (0x01 for HDD, one "long" track)
+     byte 1:    Interface version (0x10)
+     byte 2:    Sectors/Track - high byte
+     byte 3:    Sectors/Track - low byte
+     byte 4:    Side Code (0 - single sided)
+     byte 5:    Disk Type Code (0x0C or 0x80)
+                  bit 2: 1 - double density (256 bytes/sector)
+                  bit 3: 1 - IDE HDD
+     byte 6:    High byte of Bytes/Sector (0x01 for double density)
+     byte 7:    Low byte of Bytes/Sector (0x00 for double density)
+     byte 8:    Translation control (0x40)
+                  bit 6: Always 1 (to indicate drive present)
+     bytes 9-11 Drive interface type string "IDE"
+
+  Note that the data transferred by the Write Configuration command is not
+  used by the SIO2IDE interface. Only bytes 2 and 3 (max number of sectors)
+  are verified with drive parameters.
+
+  III.2. SIO2IDE specific commands
+
+     The following set of SIO2IDE specific commands are supported by the
+  interface:
+
+   Device  Unit  Command  Direction  Byte Ct.  Aux Bytes  Function
+   $71     S2I#    $11    From Drive   15        Disk#     GET disk desc.
+   $71     S2I#    $12    To Drive     15        Disk#     PUT disk desc.
+   $71     S2I#    $13    From Drive   15          -       GET first ATR file from cur. dir.
+   $71     S2I#    $14    From Drive   15          -       GET next ATR file from cur. dir.
+   $71     S2I#    $15    From Drive    1        Disk#     OFF disk (returns $FF if OK)
+   $71     S2I#    $16    From Drive    1          -       SAVE config file in active dir. (returns $FF if OK)
+   $71     S2I#    $17    From Drive   10          -       GET HDD params.
+   $71     S2I#    $18    From Drive    4          -       GET File System params.
+   $71     S2I#    $19    From Drive   15          -       GET first Subdir from cur. dir.
+   $71     S2I#    $1A    From Drive   15          -       GET next Subdir from cur. dir
+   $71     S2I#    $1B    To Drive     15          -       CHANGE current directory
+   $71     S2I#    $1C    From Drive   15          -       GET current directory
+   $71     S2I#    $1D    From Drive   15          -       INITIALISE current directory
+
+  Notes:
+
+     S2I# identifies the SIO2IDE interface (0-1). Maximum two SIO2IDE interfaces can
+     be connected to the Atari SIO Bus (jumper MS_ZW).
+
+     Disk# identifies the ATARI disk (1-5).
+
+     Commands $11 $12 $15 allows to read and update internal disk table serviced
+     by the interface. This table holds current disks assignment.
+
+     Commands $13 $14 allows to get descriptions of all correct ATR files that
+     are available in the current directory.
+
+     Commands $19 $1A allows to get descriptions of all subdirectories that
+     are available in the current directory. To initialise current directory
+     use command $1D. Note that after successfull initialisation interface
+     saves current directory description to the internal EEPROM. During
+     startup interface first tries to initialise last saved directory.
+
+     Note that: Commands $13 to $16 can be used only if current directory was
+     successfully initialised by command $1D.
+
+     All disks, ATR files and directories are described by the following common
+     data structure (15B long):
+
+     Data      Bytes    Description
+   --------------------------------------------------------------------------
+     Name       0-7     Disk/File/Directory name, 8 chars filled with spaces
+     Sector     8-11    32-bit sector number
+     Sectors    12-13   Number of sectors (128B/256B), 0 for directories
+     Flags      14      bit 7:  correct ATR file
+                        bit 6:  256B sectors
+                        bit 2:  read-only file (can be changed)
+                        bit 1:  directory
+
+     The following data structure describes IDE device parameters (10B long,
+     command $17):
+
+     Data      Bytes    Description
+   --------------------------------------------------------------------------
+     Cyls       0-1     Number of cylinders available (CHS mode).
+     Heads      2       Number of heads available (CHS mode).
+     SPT        3-4     Sectors per Track (CHS mode)
+     Sects      5-8     Number of sectors available 512B (CHS or LBA mode)
+     Flags      9       bit 7:  LBA mode is used
+
+     File system parameters are stored in the following structure (4B long,
+     command $18):
+
+     Data      Bytes    Description
+   --------------------------------------------------------------------------
+     Type       0       File system (partition) type.
+     SPC        1       Sectors per Cluster
+     Disks      2       Current number of ATARI disks available.
+     Version    3       Software version number.
+
+
+IV. RELATED DOCUMENTS
+
+  1) Atari          "Serial Input/Output Interface User's Handbook"
+  2) ANSI   1992    "AT Attachment-3 Interface"
+  3) Atmel  1999    "ATmega161 Advance Information"
+  4) MMSoft 2003    "SIO2IDE ver 3.3 Users Manual"
+  5) MMSoft 2002    S2I_SCH_3.0.DOC - SIO2IDE schematic & PCB layout
+

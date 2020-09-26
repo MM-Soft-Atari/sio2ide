@@ -1,0 +1,74 @@
+[Version]
+Signature="$CHICAGO$"
+Class=HDC
+provider=%MSFT%
+
+[Manufacturer]
+%MfgName%=Microsoft
+
+[Microsoft]
+%USB\VID_0400&PID_0001.DeviceDesc%=SIO2IDE.install,USB\VID_0400&PID_0001
+%UMSS\DISK.DeviceDesc%=s2ipdr.install,UMSS\DISK
+
+[PreCopySection]
+HKR,,NoSetupUI,,1
+
+[DestinationDirs]
+; \<WINDIR>\SYSTEM32\DRIVERS
+s2i.files = 10,System32\Drivers
+
+; \<WINDIR>\SYSTEM\IOSUBSYS
+s2ipdr.files = 12
+
+[SIO2IDE.install]
+CopyFiles=s2i.files, s2ipdr.files
+AddReg=s2i.addreg
+
+[SIO2IDE.install.HW]
+AddReg=bulkonly.addreg.HW
+
+[s2i.addreg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,UMSS.SYS
+
+; Indicate that the device uses the C/B/I protocol
+[cbi.addreg.HW]
+HKR,,DeviceProtocol,0x10001,00
+
+; Indicate that the device uses the C/B protocol
+[cb.addreg.HW]
+HKR,,DeviceProtocol,0x10001,01
+
+; Indicate that the device uses the BULK ONLY protocol
+[bulkonly.addreg.HW]
+HKR,,DeviceProtocol,0x10001,50
+
+; Install the port driver
+[s2ipdr.install]
+AddReg=s2ipdr.addreg
+
+[s2ipdr.addreg]
+HKR,,DevLoader,,*ios
+HKR,,PortDriver,,umsspdr.pdr
+
+
+[s2i.files]
+umss.sys
+
+[s2ipdr.files]
+umsspdr.pdr
+
+[SourceDisksNames]
+1000 = "USB Mass Storage Driver Disk","",,
+
+[SourceDisksFiles]
+UMSS.SYS = 1000
+UMSSPDR.PDR = 1000
+
+;---------------------------------------------------------------;
+
+[Strings]
+MSFT="Microsoft"
+MfgName="Microsoft"
+USB\VID_0400&PID_0001.DeviceDesc="SIO2IDE Drive"
+UMSS\DISK.DeviceDesc="USB Mass Storage Device"

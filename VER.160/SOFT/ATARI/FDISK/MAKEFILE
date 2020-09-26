@@ -1,0 +1,87 @@
+#################################################################
+# Copyright (C), 2001 MMSoft, All rights reserved
+#################################################################
+
+#################################################################
+#
+# SOURCE FILE:  Makefile
+#
+# PURPOSE:      Makefile for cc65 software
+#               This Makefile requires OPUS make
+#
+# AUTHOR:       Marek Mikolajewski (MM)
+#
+# REVIEWED BY:
+#
+# HISTORY:      Ver   Date       Sign   Description
+#
+#               001   25-02-2002 MM     Created
+#
+#################################################################
+
+%include ..\..\..\..\config.mak
+
+CROOT   = $(CC65ROOT)
+ROOT    = $(PROOT)\VER.160\SOFT
+
+#
+# Enter the target system here
+#
+SYS     = atari
+
+#
+# Source & Destination files
+#
+SETUP   =
+CSRCS   = ideinfo
+ASRCS   = utils
+DEST    = fdisk
+
+#
+#
+CRT0    = $(CROOT)\lib\$(SYS).o
+CLIB    = $(CROOT)\lib\$(SYS).lib
+CC      = $(CROOT)\bin\cc65
+CL      = $(CROOT)\bin\cl65
+AS      = $(CROOT)\bin\ca65
+LD      = $(CROOT)\bin\ld65
+
+SRCS    = $(ASRCS) $(CSRCS)
+OBJF    = $(SRCS,>.o)
+OBJS    = $(SETUP,>.o)
+
+$(DEST).com:  $(OBJF) $(OBJS)
+        @echo Linking    : $(DEST).com
+        @$(LD) -vm -t $(SYS) -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(OBJS) $(CRT0) $(OBJF) $(CLIB)
+#        @$(LD) -vm -C atari.xcl -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(OBJS) $(CRT0) $(OBJF) $(CLIB)
+        @echo Done (mode = $(SYS,UC))
+        @echo
+        @move $(DEST).com bin\$(DEST).com
+
+.c.o:
+        @echo Compiling  : $<
+        @$(CC) -v -O -g -Oirs -t $(SYS) -I$(CROOT)\include\ -I$(ROOT)\AVR\FAT_MM $<
+        @$(AS) $*.s
+
+.s.o:
+        @echo Assembling : $<
+        @$(AS) $*.s
+
+all:
+        @make clean
+        @make
+
+clean:
+        %foreach FILE $(CSRCS)
+          @del $(FILE).s
+        %endfor
+        @del *.map
+        @del *.o
+        @del *.lbl
+        @del *.com
+
+#       End
+
+
+
+

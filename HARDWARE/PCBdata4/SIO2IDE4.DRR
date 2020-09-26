@@ -1,0 +1,22 @@
+---------------------------------------------------------------------------
+NC Drill File Report For :  H:\SIO2IDE\HARDWARE\PCBDATA4\SIO2IDE4.PCB   5-Sep-2002   11:03:26
+---------------------------------------------------------------------------
+
+
+
+Layer Pair : Top - Bottom
+ASCII File : h:\sio2ide\hardware\pcbdata4\sio2ide4.TXT
+EIA File   : h:\sio2ide\hardware\pcbdata4\sio2ide4.DRL
+
+Tool         Hole Size          Hole Count        Tool Travel
+---------------------------------------------------------------------------
+T1        35mil (0.889mm)          4         2.388 Inch (60.656 mm)
+T2        36mil (0.9144mm)         104       22.970 Inch (583.449 mm)
+T3        39mil (0.9906mm)         112       27.053 Inch (687.134 mm)
+T4        43mil (1.0922mm)         4         4.447 Inch (112.947 mm)
+T5        91mil (2.3114mm)         2         2.755 Inch (69.988 mm)
+T6        118mil (2.9972mm)        10        13.739 Inch (348.963 mm)
+---------------------------------------------------------------------------
+Totals                             236       73.352 Inch (1863.137 mm)
+
+Total Processing Time : 00:00:00

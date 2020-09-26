@@ -1,0 +1,102 @@
+#
+# Makefile for cc65 software
+#
+# This Makefile requires OPUS make
+#
+
+%include ..\..\..\..\config.mak
+
+CROOT   = $(CC65ROOT)
+ROOT    = $(PROOT)\VER.400\SOFT
+
+#
+# Cartridge or DOS version, DEBUG mode
+#
+VER     = DOS          # DOS/XEGS32K/OSSM091
+DBG     = NDEBUG       #
+
+#----------------------------------------------------------------------------
+#
+# Enter the target system here
+#
+SYS     = atari
+
+#
+# Source files
+#
+MAIN    =
+CSRCS   =
+ASRCS   =
+
+#
+# Destination files
+#
+DEST    = carton
+DLIB    = #$(DEST).lib
+
+#
+#
+CRT0    = $(VER).o
+CLIB    = $(CROOT)\lib\$(SYS).lib
+CC      = $(CROOT)\bin\cc65
+CL      = $(CROOT)\bin\cl65
+AS      = $(CROOT)\bin\ca65
+LD      = $(CROOT)\bin\ld65
+AR      = $(CROOT)\bin\ar65
+
+SRCS    = $(ASRCS) $(CSRCS)
+OBJF    = $(SRCS,>.o)
+
+$(DEST).bin:  $(OBJF) $(CRT0)
+        @echo Linking    : $(DEST).bin
+        %foreach OBJ $(OBJF)
+          @$(AR) a $(DLIB) $(OBJ)
+        %end
+        @$(LD) -vm -C $(VER).xcl -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).bin $(CRT0) $(DLIB) $(CLIB)
+#        @$(LD) -vm -t $(SYS) -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(CRT0) $(MAIN).o $(DLIB) $(CLIB)
+#        @$(LD) -vm -t $(SYS) -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(CRT0) $(OBJF) $(CLIB)
+#        @$(LD) -vm -C atari.xcl -m $(DEST).map -Ln $(DEST).lbl -o $(DEST).com $(OBJS) $(CRT0) $(OBJF) $(CLIB)
+        @echo Done (mode = $(SYS,UC))
+        @echo
+        %if $(VER,UC)==DOS
+          @move $(DEST).bin bin\$(DEST).com
+        %else
+          @move $(DEST).bin bin\$(DEST).rom
+        %endif
+        %echo
+        %echo ************************************
+        %echo * Done ...
+        %if $(VER,UC)==DOS
+          %echo * $(DEST).com  created (DOS mode)
+        %else
+          %echo * $(DEST).rom  created (Cartridge mode)
+        %endif
+        %echo ************************************
+        %echo * Debug   :  $(DBG)
+        %echo ************************************
+        %echo
+
+.c.o:
+        @echo Compiling  : $<
+        @$(CC) -v -Or -g -t $(SYS) -D$(DBG,UC) -D__$(VER,UC)__ -I$(CROOT)\include\ -I$(ROOT)\AVR\FAT_1632 $<
+        @$(AS) $*.s
+
+.s.o:
+        @echo Assembling : $<
+        @$(AS) $*.s
+
+all:
+        @make clean
+        @make
+
+clean:
+        %foreach FILE $(CSRCS)
+          @del $(FILE).s
+        %endfor
+        @del *.map
+        @del *.o
+        @del *.lbl
+        @del *.com
+
+
+

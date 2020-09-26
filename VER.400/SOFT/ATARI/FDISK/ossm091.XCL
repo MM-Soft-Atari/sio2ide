@@ -1,0 +1,51 @@
+#
+#     OSS M091 16kB Cartridge:
+#          This is the simpler one of OSS schemes. It uses only
+#          A0 and A3 address lines:
+#          A3=0, A0=0 - $A000-$AFFF: bank B, $B000-$BFFF: bank A.
+#          A3=0, A0=1 - $A000-$AFFF: bank D, $B000-$BFFF: bank A.
+#          A3=1, A0=0 - disable cartridge.
+#          A3=1, A0=1 - $A000-$AFFF: bank C, $B000-$BFFF: bank A.
+#
+
+MEMORY {
+            ZP:       start = $82,   size = $7E,   type = rw;
+# RAM 24kB
+            DLIST:    start = $2000, size = $20,   type = rw;
+            SCREEN:   start = $2020, size = $3C0,  type = rw;
+            STACK:    start = $2400, size = $800,  type = rw, define = yes;
+            RAM:      start = $2C00, size = $5400, type = rw;
+            RAM0:     start = $8000, size = $1000, type = ro;
+            RAM1:     start = $9000, size = $1000, type = ro;
+# ROM BANKS
+            CODE:     start = $B000, size = $0FFA, type = ro, fill = yes;
+            HEADER:   start = $BFFA, size = $6,    type = ro;
+            CODE0:    start = $A000, size = $1000, type = ro, fill = yes;
+            CODE1:    start = $A000, size = $1000, type = ro, fill = yes;
+            CODE2:    start = $A000, size = $1000, type = ro, fill = yes;
+        }
+SEGMENTS {
+            ZEROPAGE: load = ZP,     type = zp;
+# DATA
+            DLIST:    load = CODE0,  run  = DLIST, type = rw, define = yes;
+            SCREEN:   load = SCREEN, type = bss,   define = yes;
+            BSS:      load = RAM,    type = bss,   define = yes;
+            DATA:     load = CODE0,  run  = RAM,   type = rw, define = yes;
+# CODE
+            CODE:     load = CODE,   type = ro,    define = yes;
+            RODATA:   load = CODE,   type = ro;
+            CARTHDR:  load = HEADER, type = ro;
+            CODE0:    load = CODE0,  run  = RAM0,  type = ro, define = yes;
+            CODE1:    load = CODE1,  run  = RAM1,  type = ro, define = yes;
+            CODE2:    load = CODE2,  type = ro,    define = yes;
+        }
+FEATURES {
+            CONDES: segment = RODATA,
+                    type = constructor,
+                    label = __CONSTRUCTOR_TABLE__,
+                    count = __CONSTRUCTOR_COUNT__;
+            CONDES: segment = RODATA,
+                    type = destructor,
+                    label = __DESTRUCTOR_TABLE__,
+                    count = __DESTRUCTOR_COUNT__;
+        }

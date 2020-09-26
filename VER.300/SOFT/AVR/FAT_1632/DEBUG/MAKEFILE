@@ -1,0 +1,40 @@
+#-------------------------------------------------------------------------------
+#
+#       Marek Mikolajewski (c) 2001
+#
+#-------------------------------------------------------------------------------
+#
+AVR     = ATmega161
+
+IPTLST += FAT_1632\
+
+%include ..\..\rules.mak
+
+DBG     = NDEBUG
+
+DEFS   += FATFS_TEST
+
+LIBS    =
+
+TSTSRC  = extmemf ide iso eeserv fatfs fs
+
+.BEFORE:
+        %foreach FILE $(TSTSRC)
+          @copy ..\$(FILE).c *.*
+        %endfor
+
+.AFTER:
+        %foreach FILE $(TSTSRC)
+          @del $(FILE).c
+        %endfor
+
+%if $(CMPLR)==IARAVR
+AFILES += cstartup
+CFILES += $(TSTSRC) fat_tst udrvavr extio extstr
+%endif
+
+OUTF    = fat_tst
+
+%include ..\..\exemake.mak
+
+#-------------------------------------------------------------------------------

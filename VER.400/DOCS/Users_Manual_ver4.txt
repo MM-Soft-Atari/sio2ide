@@ -1,0 +1,296 @@
+
+
+
+
+
+
+
+
+                   SIO2IDE Version 4.4 Users Manual
+                               Revision 1
+                        for Atari 8bit Home Computers
+
+
+
+              Copyright (C) 2005 by MMSoft and the author:
+
+                                                        Marek Mikolajewski
+                                                        Gdansk Poland
+
+
+
+
+
+
+I. SIO2IDE CHARACTERISTIC
+
+     The SIO2IDE is a simple interface that allows you to attach any IDE
+  Disk Drive to your 8-bit Atari computer. Latest interface version has the
+  following main features:
+
+      * ATARI side:
+        - uses standard Atari SIO at a speed of 19200 baud
+        - works with Atari High Speed SIO (US and Happy) at a speed of 52000 baud
+        - emulates Atari disks D1: to D8:
+          disk D1: can be swaped with Common disk D1: (HD1_ZW jumper)
+        - can be used with any Atari DOS and OS
+        - can be used without any problems with other SIO devices (disk drivers,
+          printers, modems, SIO2PC, second SIO2IDE etc)
+        - can be easy installed inside your Atari with 2.5' laptop HD
+        - is easy to configure via special fdisk.com utility software
+          (changing disks sequence and active directory)
+      * IDE device side:
+        - all IDE ATA/ATAPI devices can be used: Disk Drives (2.5' and 3.5'),
+          CD-ROMs, Compact Flash cards etc.
+        - supports PC file systems, FAT16 and FAT32
+        - supports CD file system, ISO9660
+        - supports ATR disk images (SD, DD up to 16MB)
+        - supports directory change (multiconfig)
+        - is easy to configure, many text configuration files (sio2ide.cfg) can
+          be stored in different directories
+        - disk configuration can be checked by special checkfs.exe PC utility
+          NOTE: checkfs.exe does NOT work with HDD connected via USB port
+        - standard disk utilities can be used (defrag.exe, scandisk.exe etc)
+        - Long File Name (LFN) support for HDD
+        - TEST mode for checking HDD initialisation
+        - supports Master/Slave IDE devices
+        - disk defragmentation is not required
+      * USB port side:
+        - interface works as Mass Storage Class device (removable drive)
+        - no drivers are needed for Windows 2K, ME, XP
+        - driver for Win98 is included in this SIO2IDE package
+
+
+II. SYSTEM REQUIREMENTS
+
+    The SIO2IDE interface is intended to function like other Atari peripherals
+  attached to the SIO connector. Because of that there are no special system
+  requirements from this side. Interface can operate properly with all standard
+  Atari 800, 600/800XL and 65/130XE Atari computers. Additionally all OS and
+  DOS extensions can be used without any problems.
+
+  From the Hard Disk Drive side there are the following limitations:
+
+      - only IDE disks (devices) can be used with SIO2IDE
+      - 2.5' laptop disks are recommended (small, only one +5V, low power
+        consumption) [3.5" to 2.5" converter cable would be needed, available
+        from Cables N More: http://cablesnmor.com/hard-drive-converter.html ]
+
+  From the USB port side there are the following limitations:
+
+      - operating system must support Mass Storage Class devices
+
+
+III. TECHNICAL INFORMATION
+
+    This information is covered in the technical notes for SIO2IDE (ref. 1).
+
+
+IV. FDISK.COM UTILITY SOFTWARE
+
+    The FDISK.COM utility is Atari software that can be used for configuring
+  the SIO2IDE and attached IDE disk. The software has the following menu
+  structure.
+
+        Start Menu            Main Menu
+        --------------        ---------------------
+    (M) Master SIO2IDE -> (P) View parameters
+                          (D) Change active DIR
+                          (V) View ATR files
+                          (A) Assign Disk
+                          (S) Save configuration
+                          (Esc) Exit
+    (S) Slave SIO2IDE  -> (as above)
+    (Esc) Exit
+
+  After starting the user must select the Master or Slave SIO2IDE interface
+  (depending on the MS_ZW jumper). This is important when two interfaces are
+  attached to the Atari SIO.
+
+
+  IV.1. View interface status (M-P or S-P)
+
+  This option allows you to examine the Disk Drive and SIO2IDE parameters. The
+  following information is displayed (example only):
+
+                  ---------Disk Drive parameters ----------
+                        HDD mode          :  CHS
+                        Heads             :  8
+                        Cylinders         :  762
+                        Total Sectors     :  273441
+                  -------- Interface parameters -----------
+                        Device mode       :  MASTER
+                        Soft version      :  4.0
+                        ATR files         :  24
+                        Part. type        :  FAT16 big
+                        Sec per Clust     :  4
+                  -----------------------------------------
+
+
+  IV.2. Change active directory (M-D or S-D)
+
+  This option allows viewing disk directories and changing active directory.
+  User can select directory (using keyboard or JOY1) and enter to the selected
+  directory (using 'RETURN' or FIRE). To activate current directory press 'A'.
+  Note that only directories with configuration files can be successfully
+  activated.
+
+
+  IV.3. View ATR files (M-V or S-V)
+
+  This option allows viewing the all ATR files available in the active directory.
+  Note that selected ATR file is described in the 'ATR file details' window:
+    - file number
+    - RW mode
+    - sector size 128/256
+    - number of sectors
+    - LFN (Long File Name) if available
+
+
+  IV.4. Assign Disk (M-A or S-A)
+
+  This option allows editing SIO2IDE disks table (disks sequence). User can select
+  one of Atari disks D1 to D8 and Common disk D1. For empty slots it is possible
+  to assign an ATR files. For used slots it is possible to delete current assignment.
+  Additionally it is possible to make selected disk as Read-Only ('R' key) or
+  Read-Write ('W' key). Note that for CD-ROM this function is not allowed.
+
+  Note that Common disk D1 can be easy swaped with disk D1: by HD1_ZW jumper.
+  To use Common disk D1 please add entry D9:=<ATR file> to your root sio2ide.cfg file.
+  This disk will be visible as D1: from all subdirectories on your HDD
+  (if HD1_ZW is Off).
+
+  Note that you can save this settings to the sio2ide.cfg file (M-S or S-S).
+
+
+  IV.5. Save configuration (M-S or S-S)
+
+  This option allows saving current configuration to the sio2ide.cfg file in
+  the active directory.
+
+
+V. INITIAL INSTALLATION INSTRUCTIONS
+
+    The following checklist is a procedure to connect an SIO2IDE on a new
+  IDE Hard Disk Drive.
+
+  V.1. Hardware and Disk set-up:
+      - connect suitable SIO_IO pins to the Atari SIO connector
+                SIO_IO           Atari SIO    Signal
+              -----------------------------------------
+                pin 1            pin 5        Data_Out
+                pin 2            pin 3        Data_In
+                pin 3            pin 7        Command
+                pin 5            pin 4        GND
+                pin 6                         Not used
+                pin 7            pin 10       +5V
+
+      - prepare HDD for SIO2IDE:
+        - if disk is not partitioned or formatted please do that under DOS or
+          Windows operating system,
+          Note: only primary partition will be used by the SIO2IDE
+        - write all PC software that you want (including OS files),
+          I recommend to write the following utilities (example only):
+            - defrag.exe
+            - chkdisk.exe or scandisk.exe
+            - checkfs.exe (SIO2IDE utility)
+            - makeatr.exe (SIO2IDE utility)
+            - SIO2PC, Atari emulator etc
+        - write your ATR files (create directories if needed),
+          Note: you can create empty ATR files with makeatr.exe utility and
+                format it using Atari emulator (i.e. XFormer for DOS)
+        - create all needed sio2ide.cfg files (c:\sio2ide.cfg is required)
+          I recommend to write ATR file with Atari DOS (i.e. MDOS453.ATR)
+          to the c:\ and put the following line to the c:\sio2ide.cfg file:
+          D1:=MDOS453
+          Note: MDOS453.ATR file should contain fdisk.com utility software
+        - use defrag.exe to defragment your disk (recommended)
+        - check your configuration in HDD (use checkfs.exe utility),
+          if all is OK correct disks sequence should be displayed on screen
+
+      - connect IDE_IO with the HDD using standard IDE cable
+        Note: for the 2.5' laptop HDD special adapter is required
+              (visit http://cablesnmor.com/hard-drive-converter.html for a converter adapter)
+
+      - connect supply voltage to the HDD
+        Note: for the 3.5' HDD +5V and +12V from external power supply;
+              for the 2.5' laptop HDD only +5V from external power supply or
+              directly from the Atari computer (if HDD current consumption is
+              less that 650mA)
+
+      - set SIO2IDE jumpers
+                Jumper       Setting    Description
+              ---------------------------------------------------
+                MODE_ZW      Off        SIO2IDE mode
+                HD1_ZW       On         Disk D1: On
+                MS_ZW        On         Master mode
+
+  V.2. System start:
+      Now you can start your system from SIO2IDE disk.
+
+      - switch on the system and wait for Atari and HDD power-up,
+        during initialisation the SIO2IDE reads c:\sio2ide.cfg configuration
+        file and initialises assigned Atari disks, after correct initialisation:
+          - Atari computer works normally (in BASIC mode)
+          - only the PWR_LED on the SIO2IDE is active
+          Note: in case of initialisation error check the hardware setting
+
+      - from the Atari BASIC prompt type 'BYE' command
+
+      - press RESET key to restart the computer and load the DOS from
+        the SIO2IDE disk (D1:)
+        Note: for automatic system start the Reset_Out signal (SIO_IO pin 4)
+              must be used (see SIO2IDE schematic, ref. 5)
+
+      - run the fdisk.com and check and/or change your configuration (ref. IV)
+
+  V.3. Using USB port:
+      To use USB port available on the SIO2IDE interface you have to start
+      your system with the following jumpers setting:
+
+                Jumper       Setting    Description
+              ---------------------------------------------------
+                MODE_ZW      On         IDE2USB mode
+                HD1_ZW       Not important
+                MS_ZW        Not important
+
+      In this configuration you have to connect USB port to the host i.e. PC
+      with Windows. Windows will automatically recognize new device and install
+      required drivers. Note that you will need dedicated drivers only for
+      Win98 (ref. 6).
+      After successful initialisation you will see your HDD as removable
+      drive. Now you can easy exchange data between your HDD and PC.
+
+  V.4. Using TEST mode:
+      To use TEST mode available on the SIO2IDE interface you have to start
+      your system with the following jumpers setting:
+
+                Jumper       Setting    Description
+              --------------------------------------------------------------
+                MODE_ZW      On&Off     On during start and then Off in 3sec
+                MS_ZW        Not important
+                HD1_ZW       Not important
+
+       This mode alows to test drive initialisation process. Debug text
+       information is sent on UART Tx line. To view debug output simply
+       connect SIO2IDE to the PC (use signal converter) and start any
+       terminal software (19200,8n1). The following SIO_IO line should
+       be used:
+
+                SIO_IO           Signal
+              ----------------------------
+                pin 2            UART Tx line
+                pin 5            GND
+                pin 7            +5V
+
+VI. RELATED DOCUMENTS AN SOFTWARE
+
+  1) MMSoft 2004    "SIO2IDE ver 4.3 Technical Specification"
+  2) MMSoft 2003    FDISK.COM - utility software for Atari
+                    FDISK.ROM - cartridge version (XEGS32k or DB32k)
+  3) MMSoft 2003    CHECKFS.EXE - utility software for PC
+  4) MMSoft 2003    MAKEATR.EXE - utility software for PC
+  5) MMSoft 2002    SIO2IDE_4_SCH.DOC - SIO2IDE schematic
+  6) MMSoft 2002    SIO2IDE_4_PCB.GIF - SIO2IDE PCB layout
+  7) MMSoft 2002    SIO2IDE USB Mass Storage Class driver for Win98
+

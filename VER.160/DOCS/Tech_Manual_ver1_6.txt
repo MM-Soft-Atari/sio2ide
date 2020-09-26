@@ -1,0 +1,260 @@
+
+
+
+
+
+
+
+
+               SIO2IDE Version 1.6 Technical Specification
+                               Revision 1
+                        for Atari Home Computers
+
+
+
+              Copyright (C) 2001 by MMSoft and the author:
+
+                                                        Marek Mikolajewski
+                                                        Gdansk Poland
+                                                        Curt Vendel
+
+
+
+
+
+
+I. SIO2IDE HARDWARE
+
+    The interface hardware is based on the Atmel AT90S8515 micro (512B RAM, 8kB FLASH).
+  The following control and configuration elements are available on
+  the SIO2IDE PCB:
+
+    Interface state monitor LEDs:
+       PWR_LED    - indicates the interface power supply status
+       SIO_LED    - indicates that the SIO command is received
+       BSY_LED    - indicates that the Hard Disk is busy or error occur
+       IDE_LED    - indicates the IDE bus activity (HDD output)
+
+    Configuration jumpers:
+       HD1_ZW     - On/Off disk D1: (useful e.g. during configuration)
+       INIT_ZW    - force HD initialisation (DPA is initialised, see below)
+       MS_ZW      - Master/Slave mode selection
+
+    Connectors:
+       IDE_IO     - standard 40pin IDE connector for HD (full 16bit interface)
+                    44 Pin 2.5" converter available from: http://cablesnmor.com/hard-drive-converter.html
+       ISP_IO     - Atmel micro In System Programming connector (for SW upgrade)
+                      pin 1    - GND
+                      pin 2    - GND
+                      pin 3    - AT90S8515 Reset
+                      pin 4    - AT90S8515 SS
+                      pin 5    - AT90S8515 MOSI
+                      pin 6    - AT90S8515 MISO
+                      pin 7    - AT90S8515 SCK
+                      pin 8    - Not Connected
+       SIO_IO     - Atari SIO bus plus extensions
+                      pin 1    - Data_In (SIO pin 5)
+                      pin 2    - Data_Out (SIO pin 3)
+                      pin 3    - Command (SIO pin 7)
+                      pin 4    - Reset_Out
+                      pin 5    - GND (SIO pin 4)
+                      pin 6    - GND (SIO pin 4)
+                      pin 7    - +5V (SIO pin 10)
+                      pin 8    - Not Connected
+
+  The Reset_Out (SIO_IO pin 4) is active (low state) when the SIO2IDE performs
+  the start-up initialization sequence and the disk D1: is On (jumper HD1_ZW).
+
+
+II. DISK STRUCTURE
+
+     The SIO2IDE interface uses all sectors that are available on the attached
+  IDE Disk Drive. The maximum sector number is calculated using the following
+  formula:
+
+                        MaxSec = Cyl * Head * SpT
+
+  Where:
+        Cyl    - number of cylinders
+        Head   - number of heads
+        SpT    - number of sectors per track
+
+  All these parameters are read directly from the Disk Drive during the SIO2IDE
+  start-up sequence. The interface uses standard ATA command (IDENTIFY DRIVE,
+  0xEC).
+
+  The following simple disk structure is used by the SIO2IDE interface:
+
+              Sec#      Disk sectors map
+                        -------------------------------
+                0       |     Disk Parameters Area    |
+                        -------------------------------
+                1       |                             |
+                2       |        Disk Data Area       |
+                3       |                             |
+                        ~~~~                       ~~~~
+             MaxSec-1   |                             |
+                        -------------------------------
+
+  The Disk Parameters Area (DPA) uses only one disk sector (number 0). This
+  sector contains three data blocks that describe the Disk Drive and SIO2IDE
+  configuration.
+
+    Block 0:
+       byte 0-1: Disk ID (magic number used internally by the interface)
+       byte 2:   SWver Software version (e.g. 0x10 = ver 1.0)
+       byte 3:   MaxHDP Maximum number of partitions stored on Disk (size of
+                 Partitions Table >0, in current version 48). In practice the
+                 MaxHDP value is limited only by the sector #0 size.
+
+    Block 1 (Disk Sequence Table, DST):
+       byte 0:   HD Partition attached to drive D1 (0-(MaxHDP-1) or 0xFF-none)
+       byte 1:   HD Partition attached to drive D2 (0-(MaxHDP-1) or 0xFF-none)
+       byte 2:   HD Partition attached to drive D3 (0-(MaxHDP-1) or 0xFF-none)
+       byte 3:   HD Partition attached to drive D4 (0-(MaxHDP-1) or 0xFF-none)
+       byte 4:   HD Partition attached to drive D5 (0-(MaxHDP-1) or 0xFF-none)
+       byte 5:   HD Partition attached to drive D6 (0-(MaxHDP-1) or 0xFF-none)
+       byte 6:   HD Partition attached to drive D7 (0-(MaxHDP-1) or 0xFF-none)
+       byte 7:   HD Partition attached to drive D8 (0-(MaxHDP-1) or 0xFF-none)
+       byte 8:   HD Partition attached to drive D9 (0-(MaxHDP-1) or 0xFF-none)
+       byte 9:   HD Partition attached to drive D10 (0-(MaxHDP-1) or 0xFF-none)
+       byte 10:  HD Partition attached to drive D11 (0-(MaxHDP-1) or 0xFF-none)
+       byte 11:  HD Partition attached to drive D12 (0-(MaxHDP-1) or 0xFF-none)
+       byte 12:  HD Partition attached to drive D13 (0-(MaxHDP-1) or 0xFF-none)
+       byte 13:  HD Partition attached to drive D14 (0-(MaxHDP-1) or 0xFF-none)
+       byte 14:  HD Partition attached to drive D15 (0-(MaxHDP-1) or 0xFF-none)
+
+    Note: Initially this block is filled with values: 0 to 14.
+
+    Block 2 (Disk Partitions Table, DPT):
+       byte 0-1:             HD Partition #0 size (sectors, 0-65535)
+       byte 2-3:             HD Partition #1 size (sectors, 0-65535)
+       byte 4-5:             HD Partition #2 size (sectors, 0-65535)
+       byte 6-7:             HD Partition #3 size (sectors, 0-65535)
+       ....
+       byte ((MaxHDP*2)-2)-
+            ((MaxHDP*2)-1):  HD Partition #(MaxHDP-1) size (sectors, 0-65535)
+
+  The Disk Data Area (DDA) uses all remaining disk sectors. Described disk
+  structure limits available disk space to:
+
+        MaxSize = (MaxSec - 2) * 256 [Bytes]
+
+  Note that the current SIO2IDE version based on the AT90S8515 Atmel micro can
+  handle only 256 Bytes from each disk sector (remaining bytes are not used). Future
+  interfaces based on the same PCB and the ATmega161 Atmel micro will not have
+  this limitation.
+
+
+III. SIO2IDE INTERFACE (via Atari SIO)
+
+     The physical disk drives and other peripherals are external to the ATARI
+  home computers and are normally attached to the "serial interface connector"
+  on the right side or back of the computer. The software in the operating
+  system (OS ROMs) to access the devices attached to either connector call
+  the "serial I/O driver" or SIO for short. The SIO2IDE interface is capable
+  of handling two groups of SIO commands:
+
+     - Disk Drive specific commands required by the Atari OS and DOS
+     - SIO2IDE specific commands that are used by the interface configuration
+       software (fdisk.com)
+
+  III.1. Disk Drive commands
+
+     The following minimum set of disk drive commands are supported by the
+  SIO2IDE interface:
+
+   Device  Unit   Command  Direction   Byte Ct.   Aux Bytes    Function
+   $31    Drive#    $21    From Drive     256         0         FORMAT DISK
+   $31    Drive#    $50    To Drive     128/256    1 to MaxS    WRITE(no vfy)
+   $31    Drive#    $52    From Drive   128/256    1 to MaxS    READ
+   $31    Drive#    $53    From Drive      4          0         READ STATUS
+   $31    Drive#    $57    To Drive     128/256    1 to MaxS    WRITE(verify)
+   $31    Drive#    $4E    From Drive      12      1 to MaxS    READ CFG.
+   $31    Drive#    $4F    To Drive        12      1 to MaxS    WRITE CFG.
+
+  General notes:
+
+     The byte count is always 128 for the first three sectors (1, 2, and 3)
+     of a drive. All other sectors on a disk drive are 256 bytes long.
+
+     Drive# identifies the drive unit (0-14). Max 15 disk drives can be
+     emulated by the SIO2IDE interface.
+
+     MaxS is a maximum sector number that is available on the emulated disk
+     drive unit (1-65535).
+
+  FORMAT DISK ($21)
+
+     This command is accepted by the interface but the disk drive is not physically
+  formatted (this operation is not needed). The SIO2IDE always returns a fixed
+  data block 256 bytes (filed with 0xFF). This indicates that operation was
+  successfully finished.
+
+  READ STATUS ($53)
+
+     The individual (fixed) bytes transferred by this command are defined as
+  follows:
+     byte 0:    Indicates the sector size (fixed value 0x30).
+                  bit 4: 1 - Motor is ON
+                  bit 5: 1 - 256 bytes
+     byte 1:    Inverted Error Status (fixed value 0xFF, no errors)
+     byte 2:    Format Time Out (fixed value 0xE0)
+     byte 3:    Fixed value 0x00
+
+  READ/WRITE CFG. ($4E,$4F)
+
+     The individual (fixed) bytes transferred by these commands are defined as
+  follows:
+     byte 0:    Tracks per side (0x01 for HDD, one "long" track)
+     byte 1:    Interface version (0x10)
+     byte 2:    Sectors/Track - high byte
+     byte 3:    Sectors/Track - low byte
+     byte 4:    Side Code (0 - single sided)
+     byte 5:    Disk Type Code (0x0C)
+                  bit 2: 1 - double density (256 bytes/sector)
+                  bit 3: 1 - IDE HDD
+     byte 6:    High byte of Bytes/Sector (0x01 for double density)
+     byte 7:    Low byte of Bytes/Sector (0x00 for double density)
+     byte 8:    Translation control (0x40)
+                  bit 6: Always 1 (to indicate drive present)
+     bytes 9-11 Drive interface type string "IDE"
+
+  Note that the data transferred by the Write Configuration command is not
+  used by the SIO2IDE interface. Only bytes 2 and 3 (max number of sectors)
+  are verified with drive parameters.
+
+  III.2. SIO2IDE specific commands
+
+     The following set of SIO2IDE specific commands are supported by the
+  interface:
+
+   Device  Unit   Command  Direction   Byte Ct.   Aux Bytes    Function
+   $71     S2I#     $EE    From Drive     13         0         GET S2I STAT
+   $71     S2I#     $EC    From Drive  15+DPTsize    0         GET DST+DPT
+   $71     S2I#     $ED    To Drive    15+DPTsize    0         PUT DST+DPT
+
+  Notes:
+
+     S2I# identifies the SIO2IDE interface (0-1). Maximum two SIO2IDE interfaces can
+     be connected to the Atari SIO Bus (jumper MS_ZW).
+
+     DPTsize = MaxHDP * 2
+
+     The SIO2IDE Status data block contains the following data (13 bytes):
+       byte 0-1:    Cyl, number of cylinders on Disk Drive
+       byte 2:      Head, number of heads on Disk Drive
+       byte 3-4:    SpT, number of sectors per track
+       byte 5-8:    Sec, total number of sectors on Disk Drive
+       byte 9-12:   DPA Block #0
+
+
+IV. RELATED DOCUMENTS
+
+  1) Atari          "Serial Input/Output Interface User's Handbook"
+  2) ANSI   1992    "AT Attachment-3 Interface"
+  3) Atmel  1999    "AT90S8515 Advance Information"
+  4) MMSoft 2001    "SIO2IDE ver 1.1 Users Manual"
+  5) MMSoft 2001    S2I_SCH.GIF - SIO2IDE schematic
+  6) MMSoft 2001    S2I_PCB.GIF - SIO2IDE PCB layout
+

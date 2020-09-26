@@ -1,0 +1,8 @@
+*.scc
+*.o
+*.r90
+*.lst
+*.obj
+*.map
+*.lbl
+
